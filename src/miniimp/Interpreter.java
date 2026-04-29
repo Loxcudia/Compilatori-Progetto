@@ -1,3 +1,4 @@
+package miniimp;
 
 public class Interpreter {
 
