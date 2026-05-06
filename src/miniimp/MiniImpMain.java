@@ -1,9 +1,8 @@
 package miniimp;
-
+import miniimp.MiniImp.*;
 import java.util.List;
+
 public class MiniImpMain {
-
-
     //Generated Main by AI to fully test miniimp
     public static void main(String[] args) {
 
@@ -20,11 +19,11 @@ public class MiniImpMain {
         try {
             // 2. Lexing: trasforma la stringa in token
             // (Assumendo che tu abbia messo Lexer e Parser in una classe MiniImpParserFull)
-            List<MiniImp.Token> tokens = MiniImp.Lexer.tokenize(code);
+            List<Token> tokens = Lexer.tokenize(code);
 
             // 3. Parsing: costruisce l'Albero Sintattico Astratto (AST)
-            MiniImp.Parser parser = new MiniImp.Parser(tokens);
-            MiniImp.Prog ast = parser.parseProg();
+            Parser parser = new Parser(tokens);
+            Prog ast = parser.parseProg();
 
             System.out.println("Parsing completato con successo!");
 

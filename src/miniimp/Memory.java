@@ -15,7 +15,7 @@ public class Memory {
     {
         Integer value = sigma.get(varname);
         if(value == null)
-            throw new RuntimeException("DEADLOCK! La variabile '" + varname + "' non è stata definita.");
+            throw new RuntimeException("DEADLOCK! The variable '" + varname + "' is not defined.");
         else
             return value;
     }
