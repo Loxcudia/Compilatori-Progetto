@@ -4,9 +4,20 @@ import java.util.*;
 import java.util.regex.*;
 
 public class MiniFun {
-    //AST NODES (All is an expr <t>)
+    //AST NODES
     interface Node {}
     interface Expr extends Node {}
+
+    public interface Type {}
+    public record IntType() implements Type {
+        @Override public String toString() {return "int";}
+    }
+    public record BoolType() implements Type {
+        @Override public String toString() {return "bool";}
+    }
+    public record FunType(Type left, Type right) implements Type {
+        @Override public String toString() {return "(" + left + "->" + right + ")";}
+    }
 
     // Basic values
     record IntExpr(int value) implements Expr {}
@@ -15,21 +26,29 @@ public class MiniFun {
 
     // Operations
     record BinOpExpr(String op, Expr left, Expr right) implements Expr {}
-    record IfExpr(Expr cond, Expr thenBranch, Expr elseBranch) implements Expr {}
+    record IfExpr(Expr condition, Expr thenBranch, Expr elseBranch) implements Expr {}
 
     // Scope and functions
-    record FunExpr(String param, Expr body) implements Expr {} // fun x => t
+    record FunExpr(String parameter, Type parameterType, Expr body) implements Expr {} // fun x => t
     record AppExpr(Expr function, Expr arg) implements Expr {} // t t (es. f 3)
     record LetExpr(String varName, Expr value, Expr body) implements Expr {} // let x = t in t'
-    record LetFunExpr(String funName, String param, Expr funBody, Expr body) implements Expr {} // letfun f x = t in t'
+    record LetFunExpr(String funName, Type parameterType, Expr funBody, Expr body) implements Expr {} // letfun f x = t in t'
 
 
     enum TokenType {
+        //KEYWORDS (must be before VAR)
         FUN("fun"), IF("if"), THEN("then"), ELSE("else"),
-        LETFUN("letfun"), LET("let"), IN("in"), TRUE("true"), FALSE("false"),
-        ARROW("=>"), EQCMP("=="), EQASSIGN("="), // <-- Modificati qui!
-        PLUS("\\+"), MINUS("-"), MULT("\\*"), LT("<"),
-        LPAREN("\\("), RPAREN("\\)"),
+        LETFUN("letfun"), LET("let"), INTTYPE("int"), IN("in"), TRUE("true"), FALSE("false"),
+         BOOLTYPE("bool"),
+
+        //COMPOSED SYMBOLS (must be before the singles)
+        ARROW("=>"), FUNTYPEARROW("->"), EQCMP("=="),
+
+        //SINGLE SYMBOLS
+        EQASSIGN("="), PLUS("\\+"), MINUS("-"), MULT("\\*"), LT("<"),
+        TYPEOF(":"), LPAREN("\\("), RPAREN("\\)"),
+
+        //GENERIC IDENTIFIERS AND EOF (always on bottom)
         VAR("[a-zA-Z][a-zA-Z0-9]*"), NUM("[0-9]+"), EOF("");
 
         public final String pattern;
@@ -76,23 +95,31 @@ public class MiniFun {
             return false;
         }
 
-        private void consume(TokenType expected, String errorMsg) {
-            if (!match(expected)) throw new RuntimeException(errorMsg + " Trovato: " + current().value());
+        private Token consume(TokenType expected, String errorMsg) {
+            Token tokenToReturn = current();
+            if (!match(expected)) {
+                throw new RuntimeException(errorMsg + " Trovato: " + current().value());
+            }
+            return tokenToReturn;
         }
 
         // ENTRY POINT: Legge un termine completo <t>
         public Expr parseExpr() {
             // 1. letfun f x = t in t'
             if (match(TokenType.LETFUN)) {
-                String funName = current().value();
-                consume(TokenType.VAR, "Atteso nome della funzione");
-                String param = current().value();
-                consume(TokenType.VAR, "Atteso parametro della funzione");
-                consume(TokenType.EQASSIGN, "Atteso '='");
-                Expr funBody = parseExpr();
-                consume(TokenType.IN, "Atteso 'in'");
-                Expr mainBody = parseExpr();
-                return new LetFunExpr(funName, param, funBody, mainBody);
+                String fName = consume(TokenType.VAR, "Atteso nome della funzione dopo 'letfun'").value();
+
+                // Consumiamo i due punti e leggiamo il tipo della funzione
+                consume(TokenType.TYPEOF, "Attesi due punti ':' dopo il nome della funzione " + fName);
+                Type fType = parseType();
+
+                consume(TokenType.EQASSIGN, "Atteso '=' dopo il tipo della funzione");
+                Expr fBody = parseExpr();
+
+                consume(TokenType.IN, "Atteso 'in' dopo il corpo della funzione");
+                Expr body = parseExpr();
+
+                return new LetFunExpr(fName, fType, fBody, body);
             }
             // 2. let x = t in t'
             else if (match(TokenType.LET)) {
@@ -106,11 +133,16 @@ public class MiniFun {
             }
             // 3. fun x => t
             else if (match(TokenType.FUN)) {
-                String param = current().value();
-                consume(TokenType.VAR, "Atteso parametro per la lambda");
-                consume(TokenType.ARROW, "Atteso '=>'");
+                String param = consume(TokenType.VAR, "Atteso nome del parametro dopo 'fun'").value();
+
+                // Consumiamo i due punti e leggiamo il tipo
+                consume(TokenType.TYPEOF, "Attesi due punti ':' dopo il parametro " + param);
+                Type paramType = parseType();
+
+                consume(TokenType.ARROW, "Attesa freccia '=>' dopo il tipo");
                 Expr body = parseExpr();
-                return new FunExpr(param, body);
+
+                return new FunExpr(param, paramType, body);
             }
             // 4. if t then t else t
             else if (match(TokenType.IF)) {
@@ -195,6 +227,35 @@ public class MiniFun {
                 return expr;
             }
             throw new RuntimeException("Termine imprevisto: " + current().value());
+        }
+
+        // Metodo per parsare i tipi (associativo a sinistra per la freccia ->)
+        private Type parseType() {
+            Type type = parseBaseType();
+
+            // Se troviamo un '->', continuiamo a concatenare a SINISTRA
+            while (match(TokenType.FUNTYPEARROW)) {
+                Type rightType = parseBaseType();
+                type = new FunType(type, rightType);
+            }
+
+            return type;
+        }
+
+        // Metodo per i tipi base o tipi tra parentesi
+        private Type parseBaseType() {
+            if (match(TokenType.INTTYPE)) {
+                return new IntType();
+            }
+            if (match(TokenType.BOOLTYPE)) {
+                return new BoolType();
+            }
+            if (match(TokenType.LPAREN)) {
+                Type type = parseType();
+                consume(TokenType.RPAREN, "Attesa ')' dopo il tipo");
+                return type;
+            }
+            throw new RuntimeException("Errore di Parsing: Tipo non valido o mancante. Trovato: " + current().type() + " ('" + current().value() + "')");
         }
     }
 }

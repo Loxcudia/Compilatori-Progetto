@@ -1,5 +1,5 @@
 package minifun;
-
+import minifun.MiniFun.*;
 public class Evaluator {
 
     public Value eval(MiniFun.Expr expr, Environment rho)
@@ -7,12 +7,12 @@ public class Evaluator {
         return switch(expr)
         {
             //Basic values and variables:
-            case MiniFun.IntExpr(int n) -> new Value.IntValue(n);
-            case MiniFun.BoolExpr(boolean b) -> new Value.BoolValue(b);
-            case MiniFun.VarExpr(String name) -> rho.read(name);
+            case IntExpr(int n) -> new Value.IntValue(n);
+            case BoolExpr(boolean b) -> new Value.BoolValue(b);
+            case VarExpr(String name) -> rho.read(name);
 
             //Binary and logic operations:
-            case MiniFun.BinOpExpr(String op, MiniFun.Expr left, MiniFun.Expr right) -> {
+            case BinOpExpr(String op, Expr left, Expr right) -> {
                 Value leftValue = eval(left, rho);
                 Value rightValue = eval(right, rho);
                 //I control if the left and the right exprs are actually integers before doing math
@@ -33,7 +33,7 @@ public class Evaluator {
             }
 
             //If-then else
-            case MiniFun.IfExpr(MiniFun.Expr condition, MiniFun.Expr thenBranch, MiniFun.Expr elseBranch) -> {
+            case IfExpr(Expr condition, Expr thenBranch, Expr elseBranch) -> {
                 Value conditionValue = eval(condition, rho);
                 if(conditionValue instanceof Value.BoolValue(boolean b))
                 {
@@ -47,7 +47,7 @@ public class Evaluator {
             }
 
             //Variables declaration with let
-            case MiniFun.LetExpr(String varName, MiniFun.Expr valueExpr, MiniFun.Expr body) -> {
+            case LetExpr(String varName, Expr valueExpr, Expr body) -> {
                 /*
                         1) I calculate the value of the expr
                         2) I create a total new Environment with the variable added
@@ -59,12 +59,12 @@ public class Evaluator {
             }
 
             //Function definition
-            case MiniFun.FunExpr(String parameter, MiniFun.Expr body) -> {
+            case FunExpr(String parameter, Type parameterType, Expr body) -> {
                 yield new Value.ClosureValue(parameter, body, rho);
             }
 
             //Function application
-            case MiniFun.AppExpr(MiniFun.Expr function, MiniFun.Expr argument) ->
+            case AppExpr(Expr function, Expr argument) ->
             {
                 /*
                     1) I evaluate the function (expecting a closure)
@@ -73,7 +73,7 @@ public class Evaluator {
                  */
                 Value closure = eval(function, rho);
                 Value argumentValue = eval(argument, rho);
-                if(closure instanceof Value.ClosureValue(String parameter, MiniFun.Expr body, Environment closureEnvironment))
+                if(closure instanceof Value.ClosureValue(String parameter, Expr body, Environment closureEnvironment))
                 {
                     Environment executionEnvironment = closureEnvironment.extend(parameter, argumentValue); // I extend the closure environment, not the current environment
                     yield eval(body, executionEnvironment);
@@ -83,8 +83,8 @@ public class Evaluator {
             }
 
             //Function definition with name
-            case MiniFun.LetFunExpr(String functionName, String parameter, MiniFun.Expr functionBody, MiniFun.Expr body) -> { // equals to let fName = fun param => fBody in body
-                Value closure = new Value.ClosureValue(parameter, functionBody, rho);
+            case LetFunExpr(String functionName, Type functionType, Expr functionBody, Expr body) -> { // equals to let fName = fun param => fBody in body
+                Value closure = eval(functionBody, rho);
                 Environment newRho = rho.extend(functionName, closure);
                 yield eval(body, newRho);
             }

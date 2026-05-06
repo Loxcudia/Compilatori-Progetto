@@ -8,52 +8,37 @@ public class MiniFunMain {
     //Generated Main by AI to fully test minifun
     public static void main(String[] args) {
 
-        // 1. Il codice sorgente scritto in MiniFun
-        // Testiamo letfun, let, lambda (fun), scope lessicale e chiamate!
+
         String code = """
-            letfun add x = fun y => x + y in
-            let addFive = add 5 in
-            addFive 7
+            letfun sum : int -> int = 
+                fun x : int => 
+                    if x < 1 then 0 
+                    else x + sum (x - 1)
+            in
+            let mySum = sum 5 in
+            mySum
             """;
 
-        System.out.println("--- FASE 1: Compilazione MiniFun ---");
-        System.out.println("Analizzo il seguente codice:\n" + code);
-
+        System.out.println("--- FASE 1: Compilazione (Lexing + Parsing) ---");
         try {
-            // 2. Lexing: trasforma la stringa in token
             List<Token> tokens = Lexer.tokenize(code);
-
-            // 3. Parsing: costruisce l'Albero Sintattico (AST)
             Parser parser = new Parser(tokens);
             Expr ast = parser.parseExpr();
+            System.out.println("Parsing completato con successo!\n");
+            System.out.println("--- FASE 2: Analisi Statica (Type Checking) ---");
 
-            System.out.println("Parsing completato con successo!");
+            TypeChecker typeChecker = new TypeChecker();
+            TypeEnvironment ambienteIniziale = new TypeEnvironment();
+            Type finalType = typeChecker.check(ast, ambienteIniziale);
 
-            // 4. Esecuzione: avvia l'interprete funzionale
-            System.out.println("\n--- FASE 2: Esecuzione ---");
+            System.out.println("✅ Il programma è ben tipato! Nessuna incoerenza trovata.");
+            System.out.println("-> Il tipo finale dedotto per questo programma è: " + finalType);
 
-            Evaluator interprete = new Evaluator();
-
-            // In funzionale si parte SEMPRE da un ambiente vuoto
-            Environment ambienteIniziale = new Environment();
-
-            // Valutiamo l'intero albero
-            Value risultato = interprete.eval(ast, ambienteIniziale);
-
-            // 5. Stampa del risultato
-            System.out.println("Oggetto restituito: " + risultato);
-
-            // Per renderlo più leggibile all'utente finale
-            if (risultato instanceof IntValue(int n)) {
-                System.out.println("-> Il valore matematico finale è: " + n);
-            } else if (risultato instanceof BoolValue(boolean b)) {
-                System.out.println("-> Il valore logico finale è: " + b);
-            } else if (risultato instanceof ClosureValue c) {
-                System.out.println("-> Il risultato è una Funzione (Closure) che aspetta il parametro: " + c.param());
-            }
-
+        } catch (TypeException e) {
+            System.err.println("\n❌ TYPE CHECKING FALLITO:");
+            System.err.println(e.getMessage());
         } catch (Exception e) {
-            System.err.println("Errore durante l'esecuzione: " + e.getMessage());
+            System.err.println("\n❌ ERRORE DI SISTEMA O DI PARSING:");
             e.printStackTrace();
         }
     }
