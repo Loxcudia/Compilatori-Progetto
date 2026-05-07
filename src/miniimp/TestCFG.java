@@ -40,11 +40,16 @@ public class TestCFG {
         CFG grafo = builder.build(myProgram);
         System.out.println("Grafo generato con successo!\n");
 
+        DefinedVariablesAnalysis analisi = new DefinedVariablesAnalysis();
+        analisi.computeGen(grafo);
+
         // ==========================================
         // 3. STAMPIAMO IL GRAFO (Visita BFS)
         // ==========================================
         System.out.println("--- STRUTTURA DEL GRAFO ---");
         stampaGrafo(grafo);
+
+        System.out.println("Gen del nodo Entry: " + grafo.entryNode.getGenSets(DefinedVariablesAnalysis.DEFINED_VARS));
     }
 
     // Metodo di supporto per stampare il grafo senza finire in loop infiniti
