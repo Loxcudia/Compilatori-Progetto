@@ -118,7 +118,7 @@ public class DefinedVariablesAnalysis {
                 //I look only at the output sets to determine if I reached the fixpoint, that's because the input sets are built from the output sets of the predecessors, so the element of the input sets are output element themselves
                 if(!oldOut.equals(newOut))
                 {
-                    block.setOutputSets(DEFINED_VARS, newOut);
+                    block.setOutputSets(DEFINED_VARS, newOut); //For performance reasons, I update the output set if and only if I have not reached the fixpoint yet
                     changed = true;
                 }
             }
