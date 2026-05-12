@@ -4,7 +4,7 @@ import miniimp.MiniImp.*;
 
 
 public class ReachingDefinitionsAnalysis {
-    public static final String REACHING_DEFS = "REACHED_DEFINITIONS";
+    public static final String REACHED_DEFS = "REACHED_DEFINITIONS";
 
     public void runAnalysis(CFG cfg)
     {
@@ -65,8 +65,8 @@ public class ReachingDefinitionsAnalysis {
                         killSet.add(externalDefinition);
                 }
             }
-            block.setGenSets(REACHING_DEFS, genSet);
-            block.setKillSets(REACHING_DEFS, killSet);
+            block.setGenSets(REACHED_DEFS, genSet);
+            block.setKillSets(REACHED_DEFS, killSet);
         }
     }
 
@@ -76,8 +76,8 @@ public class ReachingDefinitionsAnalysis {
         Map<CFG.Node, List<CFG.Node>> predecessors = new HashMap<>();
         for(CFG.Node block : allNodes)
         {
-            block.setInputSets(REACHING_DEFS, new HashSet<>());
-            block.setOutputSets(REACHING_DEFS, new HashSet<>());
+            block.setInputSets(REACHED_DEFS, new HashSet<>());
+            block.setOutputSets(REACHED_DEFS, new HashSet<>());
             predecessors.put(block, new ArrayList<>());
         }
         for(CFG.Node fatherNode : allNodes)
@@ -100,20 +100,20 @@ public class ReachingDefinitionsAnalysis {
                 if(preds != null && !preds.isEmpty())
                 {
                     for(int i = 0; i < preds.size(); i++)
-                        newInputSet.addAll(preds.get(i).getOutputSets(REACHING_DEFS));
+                        newInputSet.addAll(preds.get(i).getOutputSets(REACHED_DEFS));
                 }
-                block.setInputSets(REACHING_DEFS, newInputSet);
+                block.setInputSets(REACHED_DEFS, newInputSet);
                 //Out(b) = Gen(b) U (In(b) \ Kill(b))
-                Set<String> oldOutputSet = block.getOutputSets(REACHING_DEFS); //This is for the stability check
+                Set<String> oldOutputSet = block.getOutputSets(REACHED_DEFS); //This is for the stability check
                 Set<String> inMinusKill = new HashSet<>(newInputSet); //copy of input sets to not modify the original
-                inMinusKill.removeAll(block.getKillSets(REACHING_DEFS)); //In(b) \ Kill(b)
+                inMinusKill.removeAll(block.getKillSets(REACHED_DEFS)); //In(b) \ Kill(b)
                 //Unify the result with Gen(b):
-                Set<String> newOutputSet = new HashSet<>(block.getGenSets(REACHING_DEFS));
+                Set<String> newOutputSet = new HashSet<>(block.getGenSets(REACHED_DEFS));
                 newOutputSet.addAll(inMinusKill);
                 //Stability check to discover if I have reached the fixpoint:
                 if(!oldOutputSet.equals(newOutputSet))
                 {
-                    block.setOutputSets(REACHING_DEFS, newOutputSet); //For performance reasons, I update the output set if and only if I have not reached the fixpoint yet
+                    block.setOutputSets(REACHED_DEFS, newOutputSet); //For performance reasons, I update the output set if and only if I have not reached the fixpoint yet
                     changed = true;
                 }
             }

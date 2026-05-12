@@ -14,7 +14,7 @@ public class CFG {
         private static int idCounter = 0;
 
         public final int id;
-        public final List<Cmd> commands;
+        public List<Cmd> commands;
         public final List<Edge> outgoingEdges;
 
         //The String keys of the following maps are identifiers for the analysis (for example: DEFINED_VARIABLES)
@@ -36,6 +36,7 @@ public class CFG {
         {
             this.commands.add(cmd);
         }
+
 
         public void addEdge(Node target, EdgeType type)
         {

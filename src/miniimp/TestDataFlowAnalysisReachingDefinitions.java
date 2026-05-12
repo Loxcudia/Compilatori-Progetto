@@ -77,7 +77,7 @@ public class TestDataFlowAnalysisReachingDefinitions {
             }
 
             // Stampa degli insiemi calcolati
-            String analisi = ReachingDefinitionsAnalysis.REACHING_DEFS;
+            String analisi = ReachingDefinitionsAnalysis.REACHED_DEFS;
 
             System.out.println("  GEN  : " + nodo.getGenSets(analisi));
             System.out.println("  KILL : " + nodo.getKillSets(analisi));
