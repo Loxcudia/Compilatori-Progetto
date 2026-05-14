@@ -9,10 +9,6 @@ public class TestOptimizer {
         System.out.println("=================================================");
         System.out.println("   TEST PIPELINE DI OTTIMIZZAZIONE MINI-IMP");
         System.out.println("=================================================\n");
-
-        // 1. IL PROGRAMMA "TRAPPOLA"
-        // Questo programma è progettato per far brillare la tua pipeline.
-        // Calcola un sacco di cose inutili, ha rami morti e variabili che spariscono.
         String code = """
             def main with input inp output z as
             a := 10 ;
@@ -21,10 +17,9 @@ public class TestOptimizer {
             d := c - 10 ;
             x := inp ;
             if d < 50 then
-                y := d + x
+                z := d + x
             else
-                y := 0 ;
-            z := y
+                z := 0
             """;
 
         try {
@@ -55,6 +50,17 @@ public class TestOptimizer {
             System.out.println("             CFG OTTIMIZZATO FINALE              ");
             System.out.println("=================================================");
             stampaCFG(cfg);
+
+            // =====================================================================
+            // 4. GENERAZIONE CODICE LLVM
+            // =====================================================================
+            System.out.println("\n--- 4. GENERAZIONE CODICE LLVM ---");
+            LLVMGenerator llvmGen = new LLVMGenerator();
+
+            // Generiamo il file "program.ll" partendo dal CFG che abbiamo appena ottimizzato.
+            // Passiamo ast.inputVar() e ast.outputVar() per gestire correttamente i registri.
+            llvmGen.generateToFile(cfg, ast.inputVar(), ast.outputVar(), "program.ll");
+            // =====================================================================
 
         } catch (Exception e) {
             System.err.println("\nERRORE FATALE durante il test:");
