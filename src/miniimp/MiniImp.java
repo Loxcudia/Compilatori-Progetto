@@ -140,17 +140,19 @@ public class MiniImp {
             else if (match(TokenType.IF)) {
                 BoolExpr cond = parseBool();
                 consume(TokenType.THEN, "Atteso 'then'");
-                Cmd thenBranch = parseCmd();
+                Cmd thenBranch = parseSingleCmd(); // CORRETTO: valuta solo 1 comando
                 consume(TokenType.ELSE, "Atteso 'else'");
-                Cmd elseBranch = parseCmd();
+                Cmd elseBranch = parseSingleCmd(); // CORRETTO: valuta solo 1 comando
                 return new IfCmd(cond, thenBranch, elseBranch);
             }
             else if (match(TokenType.WHILE)) {
                 BoolExpr cond = parseBool();
                 consume(TokenType.DO, "Atteso 'do'");
-                return new WhileCmd(cond, parseCmd());
+                return new WhileCmd(cond, parseSingleCmd()); // CORRETTO: valuta solo 1 comando
             }
             else if (match(TokenType.LPAREN)) {
+                // Nota che qui invece DEVE rimanere parseCmd(), perché dentro
+                // le parentesi tonde vogliamo poter mettere una sequenza di comandi separati da ';'
                 Cmd cmd = parseCmd();
                 consume(TokenType.RPAREN, "Attesa ')'");
                 return cmd;
