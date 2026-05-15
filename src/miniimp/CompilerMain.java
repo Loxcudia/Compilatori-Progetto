@@ -1,26 +1,32 @@
 package miniimp;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import miniimp.MiniImp.*;
 
-public class TestOptimizer {
+public class CompilerMain {
 
     public static void main(String[] args) {
-        System.out.println("=================================================");
-        System.out.println("   TEST PIPELINE DI OTTIMIZZAZIONE MINI-IMP");
-        System.out.println("=================================================\n");
-        String code = """
-            def main with input inp output z as
-            a := 10 ;
-            b := 2 * 5 ;
-            c := a + b ;
-            d := c - 10 ;
-            x := inp ;
-            if d < 50 then
-                z := d + x
-            else
-                z := 0
-            """;
+
+        if(args.length < 1)
+        {
+            System.out.println("ERROR: no argument passed! You must specify which file to compile!");
+            System.out.println("Try java CompilerMain program.imp");
+        }
+        String filePath = args[0];
+        String code = "";
+
+        try
+        {
+            code = Files.readString(Path.of(filePath));
+        } catch (Exception e) {
+            System.err.println("ERROR: Can't read the file " + filePath);
+            System.exit(1);
+        }
+
+        System.out.println("Compilation of the file: " + filePath + "...\n");
 
         try {
             System.out.println("--- 1. LEXING E PARSING ---");

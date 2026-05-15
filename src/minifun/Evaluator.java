@@ -2,7 +2,7 @@ package minifun;
 import minifun.MiniFun.*;
 public class Evaluator {
 
-    public Value eval(MiniFun.Expr expr, Environment rho)
+    public Value eval(Expr expr, Environment rho)
     {
         return switch(expr)
         {
@@ -66,16 +66,24 @@ public class Evaluator {
             //Function application
             case AppExpr(Expr function, Expr argument) ->
             {
-                /*
-                    1) I evaluate the function (expecting a closure)
-                    2) I evaluate the argument to pass it at the function
-                    3) I extract the pieces of the closure
-                 */
                 Value closure = eval(function, rho);
                 Value argumentValue = eval(argument, rho);
+                //Default closure
                 if(closure instanceof Value.ClosureValue(String parameter, Expr body, Environment closureEnvironment))
                 {
-                    Environment executionEnvironment = closureEnvironment.extend(parameter, argumentValue); // I extend the closure environment, not the current environment
+                    Environment executionEnvironment = closureEnvironment.extend(parameter, argumentValue);
+                    yield eval(body, executionEnvironment);
+                }
+                //Recursive closure
+                else if (closure instanceof Value.RecClosureValue(String funName, String parameter, Expr body, Environment closureEnvironment))
+                {
+                    /*
+                        1. I extend the environment by adding the function itself (so there can be recursive calls)
+                        2. I extend the environment by adding the input parameter
+                        3. Evaluate the body with this new environment
+                     */
+                    Environment executionEnvironment = closureEnvironment.extend(funName, closure);
+                    executionEnvironment = executionEnvironment.extend(parameter, argumentValue);
                     yield eval(body, executionEnvironment);
                 }
                 else
@@ -83,10 +91,14 @@ public class Evaluator {
             }
 
             //Function definition with name
-            case LetFunExpr(String functionName, Type functionType, Expr functionBody, Expr body) -> { // equals to let fName = fun param => fBody in body
-                Value closure = eval(functionBody, rho);
-                Environment newRho = rho.extend(functionName, closure);
-                yield eval(body, newRho);
+            case LetFunExpr(String functionName, Type functionType, Expr functionBody, Expr body) -> {
+                if (functionBody instanceof FunExpr(String parameter, Type paramType, Expr fBody)) {
+                    Value closure = new Value.RecClosureValue(functionName, parameter, fBody, rho);
+                    Environment newRho = rho.extend(functionName, closure);
+                    yield eval(body, newRho);
+                } else {
+                    throw new RuntimeException("Type Error: letfun requires a function definition (fun => ...)");
+                }
             }
             default -> throw new RuntimeException("AST Node not supported by the Evaluator: " + expr);
         };
