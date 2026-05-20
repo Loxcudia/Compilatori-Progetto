@@ -176,8 +176,13 @@ public class MiniImp {
                 return new TrueBool();
             } else if (match(TokenType.FALSE)) {
                 return new FalseBool();
+            } else if (match(TokenType.LPAREN)) {
+                // Aggiunto supporto per le parentesi nelle espressioni booleane: ( <b> )
+                BoolExpr innerBool = parseBool();
+                consume(TokenType.RPAREN, "Attesa ')' dopo l'espressione booleana");
+                return innerBool;
             } else {
-                // Se non è true/false/not, DEVE essere <e> < <e>
+                // Se non è true/false/not/(, DEVE essere <e> < <e>
                 Expr left = parseExpr();
                 consume(TokenType.LT, "Atteso '<'");
                 Expr right = parseExpr();
@@ -213,6 +218,11 @@ public class MiniImp {
                 String name = current().value();
                 advance();
                 return new VarExpr(name);
+            } else if (match(TokenType.LPAREN)) {
+                // Aggiunto supporto per le parentesi nelle espressioni matematiche: ( <e> )
+                Expr innerExpr = parseExpr();
+                consume(TokenType.RPAREN, "Attesa ')' dopo l'espressione matematica");
+                return innerExpr;
             }
             throw new RuntimeException("Espressione non valida: " + current().value());
         }
