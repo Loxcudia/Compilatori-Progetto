@@ -29,54 +29,37 @@ public class CompilerMain {
         System.out.println("Compilation of the file: " + filePath + "...\n");
 
         try {
-            System.out.println("--- 1. LEXING E PARSING ---");
+            System.out.println("--- 1. LEXING AND PARSING ---");
             List<Token> tokens = Lexer.tokenize(code);
             Parser parser = new Parser(tokens);
             Prog ast = parser.parseProg();
-            System.out.println("AST generato con successo. Variabile di Input: " + ast.inputVar() + ", Output: " + ast.outputVar());
+            System.out.println("AST generated with success. Input variable: " + ast.inputVar() + ", Output: " + ast.outputVar());
 
-            System.out.println("\n--- 2. COSTRUZIONE DEL CFG ---");
+            System.out.println("\n--- 2. CFG CONSTRUCTION ---");
             CFGBuilder builder = new CFGBuilder();
             CFG cfg = builder.build(ast);
 
-            System.out.println("\n[CFG ORIGINALE]");
-            stampaCFG(cfg);
+            System.out.println("\n[ORIGINAL CFG]");
+            printCFG(cfg);
 
-            // 4. LANCIO DELLA PIPELINE
-            System.out.println("\n--- 4. ESECUZIONE OTTIMIZZATORE ---");
+            System.out.println("\n--- 4. EXECUTE THE OPTIMIZER ---");
             Optimizer optimizer = new Optimizer();
-
-            // Attenzione: la pipeline ricalcola le Live Variables per tagliare il codice morto.
-            // Le Live Variables hanno bisogno della variabile di OUTPUT (z) per iniziare il viaggio all'indietro!
-            // Nel tuo Optimizer.java il parametro si chiama "inputVar", ma noi gli passiamo ast.outputVar()
             optimizer.optimizingPipeline(cfg, ast.inputVar(), ast.outputVar());
-
-            // 5. RISULTATO FINALE
             System.out.println("\n=================================================");
-            System.out.println("             CFG OTTIMIZZATO FINALE              ");
+            System.out.println("             FINAL OPTIMIZED CFG             ");
             System.out.println("=================================================");
-            stampaCFG(cfg);
-
-            // =====================================================================
-            // 4. GENERAZIONE CODICE LLVM
-            // =====================================================================
-            System.out.println("\n--- 4. GENERAZIONE CODICE LLVM ---");
+            printCFG(cfg);
+            System.out.println("\n--- 4. LLVM CODE GENERATION ---");
             LLVMGenerator llvmGen = new LLVMGenerator();
-
-            // Generiamo il file "program.ll" partendo dal CFG che abbiamo appena ottimizzato.
-            // Passiamo ast.inputVar() e ast.outputVar() per gestire correttamente i registri.
             llvmGen.generateToFile(cfg, ast.inputVar(), ast.outputVar(), "program.ll");
-            // =====================================================================
 
         } catch (Exception e) {
-            System.err.println("\nERRORE FATALE durante il test:");
+            System.err.println("\nFATAL ERROR:");
             e.printStackTrace();
         }
     }
 
-    // Metodo di supporto per stampare il CFG in modo leggibile,
-    // visitando tutti i nodi con una ricerca in ampiezza (BFS)
-    private static void stampaCFG(CFG cfg) {
+    private static void printCFG(CFG cfg) {
         Set<Integer> visited = new HashSet<>();
         Queue<CFG.Node> queue = new LinkedList<>();
 
@@ -85,17 +68,15 @@ public class CompilerMain {
 
         while (!queue.isEmpty()) {
             CFG.Node block = queue.poll();
-            System.out.println("\nBLOCCO " + block.id + " (Istruzioni: " + block.commands.size() + ")");
+            System.out.println("\nBLOCK " + block.id + " (Instructions: " + block.commands.size() + ")");
 
             if (block.commands.isEmpty()) {
-                System.out.println("  (Nessuna istruzione)");
+                System.out.println("  (Empty instructions)");
             } else {
                 for (Cmd cmd : block.commands) {
                     System.out.println("  > " + cmd);
                 }
             }
-
-            // Metto in coda i successori
             for (CFG.Edge edge : block.outgoingEdges) {
                 if (!visited.contains(edge.target().id)) {
                     visited.add(edge.target().id);
